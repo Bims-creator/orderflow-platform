@@ -1,0 +1,49 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: orderflow-rules
+  labels:
+    app.kubernetes.io/part-of: orderflow
+    release: monitoring
+spec:
+  groups:
+    - name: orderflow.rules
+      rules:
+        - alert: OrderFlowServiceDown
+          expr: up{job=~".*api-service.*|.*worker-service.*"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.job }} target is down"
+            description: "Prometheus has not been able to scrape {{ $labels.job }} ({{ $labels.pod }}) for 2 minutes."
+
+        - alert: OrderFlowHighQueueBacklog
+          expr: sum(worker_service_queue_depth) > 50
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Order queue backlog is growing"
+            description: "The orders:queue depth has been above 50 for 5 minutes ({{ $value }} queued). Consider scaling worker-service."
+
+        - alert: OrderFlowHighErrorRate
+          expr: |
+            (sum(rate(api_service_http_requests_total{status_code=~"5.."}[5m]))
+              / sum(rate(api_service_http_requests_total[5m]))) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "api-service 5xx rate above 5%"
+            description: "{{ $value | humanizePercentage }} of requests to api-service failed with 5xx over the last 5 minutes."
+
+        - alert: OrderFlowSlowProcessing
+          expr: |
+            histogram_quantile(0.95, sum(rate(worker_service_order_processing_duration_seconds_bucket[5m])) by (le)) > 4
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Order processing p95 latency is elevated"
+            description: "worker-service p95 processing time has exceeded 4s for 5 minutes."

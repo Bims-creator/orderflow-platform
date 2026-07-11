@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: orderflow-staging
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+# Staging runs a single replica of each service and a different NodePort so
+# it can coexist in the same local cluster alongside the production overlay.
+patches:
+  - target:
+      kind: Deployment
+      name: api-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: worker-service
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Service
+      name: api-service
+    patch: |-
+      - op: replace
+        path: /spec/ports/0/nodePort
+        value: 30081
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api-service
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: worker-service
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+
+images:
+  - name: ghcr.io/bims-creator/orderflow-api-service
+    newTag: latest
+  - name: ghcr.io/bims-creator/orderflow-worker-service
+    newTag: latest

@@ -1,0 +1,74 @@
+{
+  "title": "OrderFlow",
+  "uid": "orderflow-overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Orders created / sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(api_service_orders_created_total[5m]))", "legendFormat": "created/s" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Orders processed / sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(worker_service_orders_processed_total[5m]))", "legendFormat": "processed/s" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Queue depth",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "sum(worker_service_queue_depth)", "legendFormat": "queued orders" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "API request duration (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(api_service_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95 latency"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Order processing duration (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(worker_service_order_processing_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95 processing time"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Service targets up",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": { "max": 1, "min": 0 }, "overrides": [] },
+      "targets": [
+        { "expr": "up{job=~\".*api-service.*|.*worker-service.*\"}", "legendFormat": "{{ pod }}" }
+      ]
+    }
+  ]
+}
