@@ -67,3 +67,10 @@ flowchart LR
 - ArgoCD is reached via `kubectl port-forward` rather than an exposed
   Ingress, and runs with `server.insecure=true` (plain HTTP behind the
   port-forward) purely to avoid self-signed TLS friction in a local demo.
+- metrics-server runs with `--kubelet-insecure-tls` because `kind` nodes
+  don't have kubelet serving certs metrics-server can verify by default.
+  Standard for local `kind`/`minikube` clusters; not something you'd do
+  against a real cluster.
+- GHCR packages are set to public visibility so the cluster can pull images
+  without an `imagePullSecret`. A private registry would need one configured
+  on the `orderflow` namespace's default service account.

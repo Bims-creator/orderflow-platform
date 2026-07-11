@@ -49,6 +49,25 @@ resource "null_resource" "wait_for_nodes" {
   }
 }
 
+resource "helm_release" "metrics_server" {
+  name             = "metrics-server"
+  repository       = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart            = "metrics-server"
+  namespace        = "kube-system"
+  create_namespace = false
+  timeout          = 300
+
+  # kind's kubelet certs aren't valid for the hostnames metrics-server expects
+  # by default; --kubelet-insecure-tls is the standard workaround for local
+  # kind/minikube clusters (not something you'd do against a real cluster).
+  set {
+    name  = "args[0]"
+    value = "--kubelet-insecure-tls"
+  }
+
+  depends_on = [null_resource.wait_for_nodes]
+}
+
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
