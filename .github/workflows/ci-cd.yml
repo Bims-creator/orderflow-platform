@@ -12,7 +12,10 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}/orderflow
+  # Hardcoded lowercase: Docker image refs must be lowercase, but
+  # github.repository_owner preserves the account's actual casing
+  # (Bims-creator), so it can't be used directly here.
+  IMAGE_PREFIX: bims-creator/orderflow
 
 jobs:
   test:
