@@ -12,6 +12,6 @@ resources:
 # between CI and ArgoCD.
 images:
   - name: ghcr.io/bims-creator/orderflow-api-service
-    newTag: db856adb18ab5c60ed514b038859205d57cd0d42
+    newTag: 10b48f29890ad28f710f75a0a39bd0721df5be8c
   - name: ghcr.io/bims-creator/orderflow-worker-service
-    newTag: db856adb18ab5c60ed514b038859205d57cd0d42
+    newTag: 10b48f29890ad28f710f75a0a39bd0721df5be8c
