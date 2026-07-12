@@ -15,12 +15,14 @@ RUN apk update && apk upgrade --no-cache
 # dependencies (cross-spawn, node-tar, sigstore) that carry known HIGH CVEs
 # and would otherwise fail the same gate for vulnerabilities we can't reach.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
-RUN addgroup -S app && adduser -S app -G app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY src ./src
 
-USER app
+# Numeric UID - Kubernetes' runAsNonRoot check can't verify a named user is
+# actually non-root, only a numeric one. 1000 is the "node" user the base
+# image already ships with.
+USER 1000
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/healthz', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
