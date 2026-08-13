@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: write
-  packages: write
-
 env:
   REGISTRY: ghcr.io
   # Hardcoded lowercase: Docker image refs must be lowercase, but
@@ -21,6 +17,8 @@ jobs:
   test:
     name: Test (${{ matrix.service }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         service: [api-service, worker-service]
@@ -44,6 +42,8 @@ jobs:
   lint:
     name: Lint Dockerfiles & Kubernetes manifests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -65,10 +65,39 @@ jobs:
                 -ignore-missing-schemas
           done
 
+  secret-scan:
+    name: Scan for committed secrets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks needs full history, not just the latest commit
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql-analysis:
+    name: Static analysis (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # required to upload SAST results to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+        with:
+          languages: javascript
+      - uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+
   build-scan-push:
     name: Build, scan & push (${{ matrix.service }})
-    needs: [test, lint]
+    needs: [test, lint, secret-scan, codeql-analysis]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         service: [api-service, worker-service]
@@ -122,6 +151,8 @@ jobs:
     needs: build-scan-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
